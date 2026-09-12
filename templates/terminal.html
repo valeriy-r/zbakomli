@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Терминал Оператора — Алина</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0b0f19; color: #e2e8f0; height: 100vh; display: flex; overflow: hidden; }
+
+    #sidebar { width: 320px; background-color: #111827; border-right: 1px solid #1f2937; display: flex; flex-direction: column; }
+    .sidebar-header { padding: 14px 16px; border-bottom: 1px solid #1f2937; font-weight: bold; font-size: 13px; text-transform: uppercase; color: #9ca3af; }
+    #session-list { flex: 1; overflow-y: auto; }
+    .session-item { padding: 12px 16px; border-bottom: 1px solid #1f2937; cursor: pointer; transition: background 0.2s; }
+    .session-item:hover { background-color: #1e293b; }
+    .session-item.active { background-color: #1e293b; border-left: 4px solid #f43f5e; }
+    .session-item .tg-id { font-weight: 600; color: #f8fafc; font-size: 13px; }
+    .session-item .last-msg { font-size: 11px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 3px; }
+
+    #chat-container { flex: 1; display: flex; flex-direction: column; background-color: #090d16; }
+    #chat-header { height: 50px; border-bottom: 1px solid #1f2937; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background-color: #111827; }
+    .chat-title { font-size: 15px; font-weight: 600; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .balance-badge { background-color: #1e293b; padding: 4px 10px; border-radius: 14px; font-size: 11px; color: #38bdf8; border: 1px solid #0284c7; }
+
+    .autopilot-btn { padding: 4px 12px; border-radius: 14px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+    .autopilot-btn.off { background-color: #1e293b; color: #94a3b8; border-color: #334155; }
+    .autopilot-btn.on { background: linear-gradient(135deg, #10b981, #059669); color: #fff; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
+
+    #memory-bar { background-color: #0d1527; border-bottom: 1px solid #1f2937; padding: 8px 20px; font-size: 11px; display: flex; align-items: center; gap: 12px; color: #94a3b8; }
+    .mem-tag { background-color: #1e293b; padding: 2px 8px; border-radius: 4px; border: 1px solid #334155; color: #e2e8f0; }
+    .mem-facts { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #38bdf8; }
+
+    #messages-box { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 10px; }
+    .message { max-width: 70%; padding: 10px 14px 22px 14px; border-radius: 12px; font-size: 13px; line-height: 1.4; word-break: break-word; position: relative; }
+    .message.user { align-self: flex-start; background-color: #1e293b; color: #f8fafc; }
+    .message.actress { align-self: flex-end; background: linear-gradient(135deg, #be123c, #9f1239); color: #fff; }
+    .msg-time { position: absolute; bottom: 4px; right: 10px; font-size: 9px; opacity: 0.7; }
+    .message.user .msg-time { right: auto; left: 10px; }
+
+    #controls-panel { background-color: #111827; border-top: 1px solid #1f2937; padding: 12px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+    .copilot-section { display: flex; flex-direction: column; gap: 6px; }
+    .copilot-header-row { display: flex; justify-content: space-between; align-items: center; }
+    .copilot-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #f43f5e; }
+    .copilot-refresh-btn { background-color: #be123c; border: none; color: #fff; border-radius: 4px; padding: 4px 12px; font-size: 11px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+    .copilot-refresh-btn:hover { background-color: #f43f5e; }
+
+    .copilot-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .copilot-card { background-color: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 10px; font-size: 11px; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; color: #cbd5e1; }
+    .copilot-card:hover { border-color: #f43f5e; background-color: #273549; }
+    .copilot-card-content { cursor: pointer; }
+    .copilot-card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #334155; padding-top: 4px; margin-top: 4px; }
+    .split-badge { font-size: 9px; padding: 1px 6px; border-radius: 3px; font-weight: bold; }
+    .send-split-btn { background-color: #be123c; border: none; color: #fff; border-radius: 3px; font-size: 10px; padding: 3px 8px; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+    .send-split-btn:hover { background-color: #f43f5e; }
+
+    .media-top-row { display: flex; justify-content: space-between; align-items: center; }
+    .media-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #38bdf8; }
+    .media-filters { display: flex; gap: 6px; }
+    .filter-btn { background-color: #1e293b; border: 1px solid #334155; color: #94a3b8; border-radius: 4px; padding: 2px 8px; font-size: 10px; cursor: pointer; }
+    .filter-btn.active { background-color: #0284c7; color: #fff; border-color: #0284c7; }
+
+    .media-section { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0; }
+    .media-item { display: flex; align-items: center; background-color: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 4px 8px; gap: 6px; font-size: 11px; }
+    .media-send-btn { background: none; border: none; color: #38bdf8; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 4px; font-weight: 500; }
+    .media-send-btn:hover { color: #fff; text-decoration: underline; }
+    .media-tool-btn { background: none; border: none; color: #64748b; cursor: pointer; font-size: 10px; }
+    .media-tool-btn:hover { color: #f43f5e; }
+
+    .hint-toggle-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #94a3b8; }
+    .input-row { display: flex; gap: 10px; align-items: center; }
+    #message-input { flex: 1; background-color: #1e293b; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; padding: 10px 14px; font-size: 13px; outline: none; }
+    #message-input:focus { border-color: #f43f5e; }
+    .send-btn { background: linear-gradient(135deg, #f43f5e, #be123c); border: none; border-radius: 6px; color: white; font-weight: 600; padding: 10px 20px; cursor: pointer; font-size: 13px; }
+  </style>
+</head>
+<body>
+
+  <div id="sidebar">
+    <div class="sidebar-header">Диалоги (Глава 2)</div>
+    <div id="session-list"></div>
+  </div>
+
+  <div id="chat-container">
+    <div id="chat-header">
+      <div class="chat-title" id="chat-title">Выберите диалог</div>
+      <div class="header-right">
+        <button class="autopilot-btn off" id="autopilot-btn" onclick="toggleAutopilot()">🤖 Автопилот: ВЫКЛ</button>
+        <div class="balance-badge" id="balance-badge">Баланс: -</div>
+      </div>
+    </div>
+
+    <div id="memory-bar">
+      <span>👤 Профиль:</span>
+      <span class="mem-tag" id="mem-mood">Настроение: -</span>
+      <span class="mem-tag" id="mem-topic">Тема: -</span>
+      <span class="mem-tag" id="mem-intimacy">Близость: 1/5</span>
+      <span class="mem-facts" id="mem-facts">Факты: -</span>
+    </div>
+
+    <div id="messages-box"><div style="text-align:center; color:#64748b; margin-top:20px;">Диалог не выбран</div></div>
+
+    <div id="controls-panel">
+      <div class="copilot-section">
+        <div class="copilot-header-row">
+          <span class="copilot-label">✨ ИИ-Подсказки Алины (клик по тексту — вставить, кнопка — отправить частями)</span>
+          <button class="copilot-refresh-btn" onclick="requestFreshCopilot()">⚡ Сгенерировать подсказки</button>
+        </div>
+        <div class="copilot-cards" id="copilot-cards"><div style="font-size: 11px; color: #64748b;">Ожидание диалога...</div></div>
+      </div>
+
+      <div>
+        <div class="media-top-row">
+          <span class="media-label">📁 Медиатека Алины</span>
+          <div class="media-filters">
+            <button class="filter-btn active" onclick="filterMedia('all', this)">Все</button>
+            <button class="filter-btn" onclick="filterMedia('video_note', this)">🎥 Кружки</button>
+            <button class="filter-btn" onclick="filterMedia('voice', this)">🎙 Голосовые</button>
+            <button class="filter-btn" onclick="filterMedia('photo', this)">📷 Фото</button>
+          </div>
+        </div>
+        <div class="media-section" id="media-list"></div>
+      </div>
+
+      <div class="hint-toggle-row">
+        <input type="checkbox" id="attach-hints-checkbox" checked />
+        <label for="attach-hints-checkbox">Прикреплять кнопки вариантов ответа для парня</label>
+      </div>
+
+      <div class="input-row">
+        <input type="text" id="message-input" placeholder="Напишите реплику от лица Алины..." />
+        <button class="send-btn" onclick="sendMessage()">Отправить (-1)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let activeSessionId = null;
+    let currentFilter = 'all';
+    let rawMediaList = [];
+    let currentTargetPhrase = '';
+    let lastHandledMessageSignature = '';
+    let currentReplies = [];
+    let isSessionsLoading = false;
+    let isMessagesLoading = false;
+
+    async function loadAutopilotStatus() {
+      try {
+        const res = await fetch('/api/autopilot/status');
+        if (!res.ok) return;
+        const d = await res.json();
+        updateAutopilotBtnUI(d.enabled);
+      } catch (err) {}
+    }
+
+    async function toggleAutopilot() {
+      try {
+        const res = await fetch('/api/autopilot/toggle', { method: 'POST' });
+        if (!res.ok) return;
+        const d = await res.json();
+        updateAutopilotBtnUI(d.enabled);
+      } catch (err) {}
+    }
+
+    function updateAutopilotBtnUI(isEnabled) {
+      const btn = document.getElementById('autopilot-btn');
+      if (isEnabled) {
+        btn.className = 'autopilot-btn on';
+        btn.innerText = '🤖 Автопилот: ВКЛ';
+      } else {
+        btn.className = 'autopilot-btn off';
+        btn.innerText = '🤖 Автопилот: ВЫКЛ';
+      }
+    }
+
+    async function loadSessions() {
+      if (isSessionsLoading) return;
+      isSessionsLoading = true;
+      try {
+        const res = await fetch('/api/sessions?t=' + Date.now());
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = document.getElementById('session-list');
+        list.innerHTML = '';
+        data.forEach(s => {
+          const div = document.createElement('div');
+          div.className = `session-item ${activeSessionId === s.id ? 'active' : ''}`;
+          div.onclick = () => selectSession(s.id);
+          div.innerHTML = `<div class="tg-id">TG: ${s.telegram_id}</div><div class="last-msg">${escapeHtml(s.last_msg || 'Новый диалог')}</div>`;
+          list.appendChild(div);
+        });
+        if (!activeSessionId && data.length > 0) selectSession(data[0].id);
+      } catch (err) {
+      } finally {
+        isSessionsLoading = false;
+      }
+    }
+
+    async function selectSession(id) {
+      activeSessionId = id;
+      currentTargetPhrase = '';
+      lastHandledMessageSignature = '';
+      document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+      await loadMessages();
+      await requestFreshCopilot();
+      await loadMedia();
+    }
+
+    async function loadMessages() {
+      if (!activeSessionId || isMessagesLoading) return;
+      isMessagesLoading = true;
+      try {
+        const res = await fetch(`/api/messages/${activeSessionId}?t=` + Date.now());
+        if (!res.ok) return;
+        const data = await res.json();
+        document.getElementById('chat-title').innerText = `TG ID: ${data.telegram_id}`;
+        document.getElementById('balance-badge').innerText = `Баланс: ${data.balance} сообщ.`;
+
+        if (data.memory_state) {
+          const m = data.memory_state;
+          document.getElementById('mem-mood').innerText = `Настроение: ${m.mood || 'нейтральное'}`;
+          document.getElementById('mem-topic').innerText = `Тема: ${m.current_topic || 'знакомство'}`;
+          document.getElementById('mem-intimacy').innerText = `Близость: ${m.intimacy_level || 1}/5`;
+          const facts = m.known_facts && m.known_facts.length > 0 ? m.known_facts.join(' • ') : 'пока нет фактов';
+          document.getElementById('mem-facts').innerText = `Факты: ${facts}`;
+        }
+
+        const box = document.getElementById('messages-box');
+        box.innerHTML = '';
+
+        let lastMsgObj = null;
+        data.messages.forEach(m => {
+          const div = document.createElement('div');
+          div.className = `message ${m.sender_type}`;
+
+          let timeStr = '';
+          if (m.created_at) {
+            const dateObj = new Date(m.created_at);
+            if (!isNaN(dateObj)) {
+              timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            } else {
+              timeStr = m.created_at.split(' ')[1] ? m.created_at.split(' ')[1].substring(0, 8) : '';
+            }
+          }
+
+          div.innerHTML = `${escapeHtml(m.text)}<span class="msg-time">${timeStr}</span>`;
+          box.appendChild(div);
+          lastMsgObj = m;
+        });
+        box.scrollTop = box.scrollHeight;
+
+        if (lastMsgObj) {
+          const signature = lastMsgObj.sender_type + ':' + lastMsgObj.text.trim();
+          if (signature !== lastHandledMessageSignature) {
+            lastHandledMessageSignature = signature;
+            currentTargetPhrase = lastMsgObj.text.trim();
+            requestFreshCopilot(currentTargetPhrase, lastMsgObj.sender_type);
+          }
+        }
+      } catch (err) {
+      } finally {
+        isMessagesLoading = false;
+      }
+    }
+
+    function splitTextToTwoParts(text) {
+      const cleaned = (text || '').replace(/^\[.*?\]\s*/, '').trim();
+      if (!cleaned) return ['Привет', 'как дела?'];
+
+      const match = cleaned.match(/^(.+?[.!?])\s+(.+)$/);
+      if (match) {
+        return [match[1].trim(), match[2].trim()];
+      }
+
+      const words = cleaned.split(/\s+/);
+      if (words.length >= 4) {
+        const mid = Math.floor(words.length / 2);
+        return [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
+      }
+
+      return [cleaned, '😉'];
+    }
+
+    async function requestFreshCopilot(customPhrase = null, senderType = 'user') {
+      if (!activeSessionId) return;
+      const phrase = customPhrase || currentTargetPhrase;
+
+      const box = document.getElementById('copilot-cards');
+      box.innerHTML = `<div style="font-size:11px;color:#38bdf8;">⚡ YandexGPT подбирает ответы...</div>`;
+
+      try {
+        const url = `/api/copilot/${activeSessionId}?phrase=` + encodeURIComponent(phrase) + `&sender=` + encodeURIComponent(senderType) + `&t=` + Date.now();
+        const res = await fetch(url);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        box.innerHTML = '';
+        currentReplies = data.actress_replies || [];
+
+        if (data.updated_memory) {
+          const m = data.updated_memory;
+          document.getElementById('mem-mood').innerText = `Настроение: ${m.mood || 'нейтральное'}`;
+          document.getElementById('mem-topic').innerText = `Тема: ${m.current_topic || 'знакомство'}`;
+          document.getElementById('mem-intimacy').innerText = `Близость: ${m.intimacy_level || 1}/5`;
+          const facts = m.known_facts && m.known_facts.length > 0 ? m.known_facts.join(' • ') : 'пока нет фактов';
+          document.getElementById('mem-facts').innerText = `Факты: ${facts}`;
+        }
+
+        if (currentReplies.length > 0) {
+          currentReplies.forEach((r, idx) => {
+            if (!r.split_messages || !Array.isArray(r.split_messages) || r.split_messages.length < 2) {
+              r.split_messages = splitTextToTwoParts(r.text);
+            }
+
+            const card = document.createElement('div');
+            card.className = 'copilot-card';
+            card.id = `copilot-card-${idx}`;
+
+            card.innerHTML = `
+              <div class="copilot-card-content" onclick="applyReplyByIndex(${idx})">
+                <div style="font-weight:600; color:#f43f5e; margin-bottom:2px;">[${escapeHtml(r.tone || 'REPLY')}]</div>
+                <div style="color:#f8fafc; margin-bottom:4px;">1️⃣ ${escapeHtml(r.split_messages[0])}</div>
+                <div style="color:#94a3b8;">2️⃣ ${escapeHtml(r.split_messages[1])}</div>
+              </div>
+              <div class="copilot-card-footer">
+                <span class="split-badge" style="color: #10b981; background-color: #0f172a;">2 части</span>
+                <button class="send-split-btn" id="btn-split-${idx}" onclick="sendSplitByIndex(${idx})">🚀 Отправить частями</button>
+              </div>
+            `;
+            box.appendChild(card);
+          });
+        } else {
+          box.innerHTML = '<div style="font-size:11px;color:#64748b;">Нет ответов</div>';
+        }
+      } catch (err) {
+        box.innerHTML = '<div style="font-size:11px;color:#e02454;">Ошибка генерации подсказок</div>';
+      }
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.innerText = text;
+      return div.innerHTML;
+    }
+
+    function applyReplyByIndex(idx) {
+      if (!currentReplies[idx]) return;
+      const input = document.getElementById('message-input');
+      input.value = currentReplies[idx].text;
+      input.focus();
+    }
+
+    async function sendSplitByIndex(idx) {
+      if (!activeSessionId || !currentReplies[idx]) return;
+      const replyObj = currentReplies[idx];
+      const btn = document.getElementById(`btn-split-${idx}`);
+
+      let parts = [];
+      if (replyObj.split_messages && Array.isArray(replyObj.split_messages) && replyObj.split_messages.length >= 2) {
+        parts = [String(replyObj.split_messages[0]).trim(), String(replyObj.split_messages[1]).trim()];
+      } else {
+        parts = splitTextToTwoParts(replyObj.text);
+      }
+
+      const attachHints = document.getElementById('attach-hints-checkbox').checked;
+
+      try {
+        btn.disabled = true;
+        btn.style.backgroundColor = '#d97706';
+        btn.innerText = '📤 Отправка ч. 1...';
+
+        // 1. Отправляем первую часть (строго без кнопок)
+        let res = await fetch('/api/send_message_part', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: activeSessionId, text: parts[0], attach_hints: false })
+        });
+        let d = await res.json();
+        if (d.status === 'error') throw new Error(d.message);
+
+        btn.innerText = '⏳ Пауза 3с...';
+        await new Promise(r => setTimeout(r, 3000));
+        btn.innerText = '📤 Отправка ч. 2...';
+
+        // 2. Отправляем вторую часть строго с кнопками (без промежуточного "!!!")
+        res = await fetch('/api/send_message_part', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: activeSessionId,
+            text: parts[1],
+            attach_hints: attachHints,
+            custom_hints: replyObj.user_hints || []
+          })
+        });
+        d = await res.json();
+        if (d.status === 'error') throw new Error(d.message);
+
+        btn.style.backgroundColor = '#059669';
+        btn.innerText = '✨ Всё отправлено!';
+
+        const lastPart = parts[1];
+        lastHandledMessageSignature = 'actress:' + lastPart;
+        currentTargetPhrase = lastPart;
+
+        await loadMessages();
+        await requestFreshCopilot(lastPart, 'actress');
+      } catch (err) {
+        console.error("❌ Ошибка отправки:", err);
+        alert("Ошибка: " + err.message);
+        btn.disabled = false;
+        btn.style.backgroundColor = '#be123c';
+        btn.innerText = '🚀 Отправить частями';
+      }
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById('message-input');
+      const text = input.value.trim();
+      if (!text || !activeSessionId) return;
+      const attachHints = document.getElementById('attach-hints-checkbox').checked;
+
+      input.value = '';
+      try {
+        await fetch('/api/send_message_part', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: activeSessionId,
+            text: text,
+            attach_hints: attachHints
+          })
+        });
+        lastHandledMessageSignature = 'actress:' + text;
+        currentTargetPhrase = text;
+        await loadMessages();
+        requestFreshCopilot(text, 'actress');
+      } catch (err) {
+        alert("Ошибка отправки: " + err);
+      }
+    }
+
+    async function loadMedia() {
+      try {
+        const res = await fetch('/api/media?t=' + Date.now());
+        if (!res.ok) return;
+        rawMediaList = await res.json();
+        renderMedia();
+      } catch (err) {}
+    }
+
+    function filterMedia(type, btnElem) {
+      currentFilter = type;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      if (btnElem) btnElem.classList.add('active');
+      renderMedia();
+    }
+
+    function renderMedia() {
+      const box = document.getElementById('media-list');
+      box.innerHTML = '';
+      const filtered = rawMediaList.filter(m => currentFilter === 'all' || m.media_type === currentFilter);
+      const iconMap = { 'video_note': '🎥', 'voice': '🎙', 'photo': '📷' };
+
+      filtered.forEach(m => {
+        const item = document.createElement('div');
+        item.className = 'media-item';
+        item.innerHTML = `
+          <button class="media-send-btn" onclick="sendMedia(${m.id})">
+            ${iconMap[m.media_type] || '📁'} ${escapeHtml(m.title)} (${m.cost_messages || 1})
+          </button>
+          <button class="media-tool-btn" title="Редактировать" onclick="editMedia(${m.id}, '${escapeHtml(m.title)}')">✏️</button>
+          <button class="media-tool-btn" title="Удалить" onclick="deleteMedia(${m.id})">🗑</button>
+        `;
+        box.appendChild(item);
+      });
+    }
+
+    async function editMedia(id, oldTitle) {
+      const newTitle = prompt("Введите новое название медиа:", oldTitle);
+      if (!newTitle || newTitle === oldTitle) return;
+      await fetch('/api/media/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ media_id: id, title: newTitle })
+      });
+      await loadMedia();
+    }
+
+    async function deleteMedia(id) {
+      if (!confirm("Удалить этот файл из медиатеки?")) return;
+      await fetch('/api/media/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ media_id: id })
+      });
+      await loadMedia();
+    }
+
+    async function sendMedia(mediaId) {
+      if (!activeSessionId) return;
+      if (!confirm("Отправить этот медиафайл пользователю?")) return;
+      try {
+        const res = await fetch('/api/send_media', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: activeSessionId, media_id: mediaId })
+        });
+        const d = await res.json();
+        if (d.status === 'error') {
+          alert(d.message);
+        } else {
+          await loadMessages();
+        }
+      } catch (err) {}
+    }
+
+    document.getElementById('message-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+    setInterval(loadMessages, 3500);
+    setInterval(loadSessions, 6000);
+    loadAutopilotStatus();
+    loadSessions();
+  </script>
+</body>
+</html>

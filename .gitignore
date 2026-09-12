@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.idea/
+config.py
+*.log
+.env
+.env.*
+
+.env
+.env.*
+
+.env
+.env.*
